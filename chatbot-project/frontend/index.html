@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Chatbot</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #1f1f1f;
+      color: #fff;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .background-animation {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.7) 100%);
+      animation: backgroundMove 10s linear infinite;
+      z-index: 0;
+    }
+
+    @keyframes backgroundMove {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
+    .chat-container {
+      z-index: 1;
+      width: 540px;
+      height: 630px;
+      background-color: #2b2b2b;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      animation: fadeIn 1s ease-in forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.9); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .header {
+      background-color: #444;
+      color: #fff;
+      text-align: center;
+      padding: 15px;
+      font-size: 22px;
+      font-weight: bold;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .messages {
+      flex-grow: 1;
+      padding: 20px;
+      overflow-y: auto;
+      font-size: 16px;
+      color: #ddd;
+      background-color: #333;
+      border-bottom: 1px solid #444;
+    }
+
+    .messages div {
+      margin-bottom: 15px;
+      line-height: 1.8;
+      padding: 10px 14px;
+      border-radius: 12px;
+    }
+
+    .user-msg {
+      background-color: #181819;
+      align-self: flex-end;
+      border-radius: 15px 15px 0 15px;
+      margin-left: 40px;
+    }
+
+    .groq-msg {
+      background-color: #1b1a1a;
+      align-self: flex-start;
+      border-radius: 15px 15px 15px 0;
+      margin-right: 40px;
+    }
+
+    .input-container {
+      display: flex;
+      align-items: center;
+      padding: 15px;
+      background-color: #2b2b2b;
+      border-top: 1px solid #444;
+    }
+
+    input[type="text"] {
+      flex-grow: 1;
+      padding: 18px;
+      border: 2px solid #444;
+      border-radius: 30px;
+      font-size: 16px;
+      outline: none;
+      color: #ddd;
+      background-color: #444;
+    }
+
+    button {
+      margin-left: 10px;
+      padding: 15px 25px;
+      background-color: #4f80ff;
+      color: white;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    pre {
+      background-color: #1e1e1e;
+      color: #d4d4d4;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-top: 8px;
+      font-family: 'Courier New', monospace;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+  </style>
+</head>
+<body>
+  <div class="background-animation"></div>
+
+  <div class="chat-container">
+    <div class="header">Coding Assistant</div>
+    <div class="messages" id="messages"></div>
+    <div class="input-container">
+      <input type="text" id="userInput" placeholder="Ask me something..." onkeydown="handleKey(event)" />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    function escapeHtml(text) {
+      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+      return text.replace(/[&<>"']/g, m => map[m]);
+    }
+
+    async function sendMessage() {
+      const inputElement = document.getElementById('userInput');
+      const userInput = inputElement.value.trim();
+      const messagesDiv = document.getElementById('messages');
+      if (!userInput) return;
+
+      messagesDiv.innerHTML += `<div class="user-msg"><strong>You:</strong> ${escapeHtml(userInput)}</div>`;
+      inputElement.value = '';
+
+      try {
+        const response = await fetch('http://127.0.0.1:5000/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: userInput })
+        });
+
+        const data = await response.json();
+
+        messagesDiv.innerHTML += `<div class="groq-msg"><strong>Groq:</strong><pre><code>${escapeHtml(data.reply)}</code></pre></div>`;
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      } catch (error) {
+        messagesDiv.innerHTML += `<div class="groq-msg"><strong>Error:</strong> Cannot connect to server.</div>`;
+      }
+    }
+
+    function handleKey(e) {
+      if (e.key === "Enter") sendMessage();
+    }
+  </script>
+</body>
+</html>
